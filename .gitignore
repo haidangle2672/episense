@@ -1,0 +1,5 @@
+.env
+mosquitto/config/passwd
+mosquitto/data/
+mosquitto/log/
+firmware/esp32_telemetry/secrets.h

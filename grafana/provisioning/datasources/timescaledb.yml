@@ -1,0 +1,16 @@
+apiVersion: 1
+datasources:
+  - name: EpiSense TimescaleDB
+    uid: episense-tsdb
+    type: postgres
+    access: proxy
+    url: db:5432                    # tên service trong Docker network
+    user: grafana_ro
+    isDefault: true
+    jsonData:
+      database: episense
+      sslmode: disable              # chỉ trong mạng Docker nội bộ
+      postgresVersion: 1600         # PostgreSQL 16
+      timescaledb: true
+    secureJsonData:
+      password: ${GRAFANA_DB_PASSWORD}   # Grafana tự thay từ biến môi trường

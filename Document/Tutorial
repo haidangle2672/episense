@@ -1,0 +1,2 @@
+Mở cổng 1883 cho mạng LAN:
+    New-NetFirewallRule -DisplayName "MQTT 1883 (LAN)" -Direction Inbound -Protocol TCP -LocalPort 1883 -Action Allow -Profile Private

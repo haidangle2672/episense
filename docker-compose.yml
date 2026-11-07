@@ -1,0 +1,118 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.18
+    container_name: episense-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    env_file: .env
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+    networks:
+      - episense-net
+    healthcheck:
+      test: [ "CMD-SHELL", "mosquitto_sub -h localhost -u $${MQTT_USER} -P $${MQTT_PASS} -t '$$SYS/broker/uptime' -C 1 -W 3 || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  db:
+    image: timescale/timescaledb:2.17.2-pg16 # kiểm tra tag có trên Docker Hub
+    container_name: episense-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - episense-pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - episense-net
+    # Cố ý KHÔNG publish cổng 5432 ra host: chỉ các service trong episense-net truy cập được
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ingestor:
+    build: ./ingestor
+    container_name: episense-ingestor
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_USER: ${MQTT_INGEST_USER}
+      MQTT_PASS: ${MQTT_INGEST_PASS}
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    networks:
+      - episense-net
+
+  grafana:
+    image: grafana/grafana-oss:11.3.0 # kiểm tra tag trên Docker Hub
+    container_name: episense-grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000" # chỉ localhost
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD} # để file provisioning đọc được
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - episense-net
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  alerter:
+    build: ./alerter
+    container_name: episense-alerter
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_USER: ${MQTT_ALERT_USER}
+      MQTT_PASS: ${MQTT_ALERT_PASS}
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: alerter
+      POSTGRES_PASSWORD: ${ALERTER_DB_PASSWORD}
+      T_HIGH: ${T_HIGH:-35.0}
+      T_LOW: ${T_LOW:-33.0}
+      CONFIRM_N: ${CONFIRM_N:-3}
+      COOLDOWN_S: ${COOLDOWN_S:-300}
+      ACK_TIMEOUT_S: ${ACK_TIMEOUT_S:-10}
+      MAX_RETRIES: ${MAX_RETRIES:-2}
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    networks:
+      - episense-net
+
+volumes:
+  episense-pgdata:
+  grafana-data:
+
+networks:
+  episense-net:
+    driver: bridge
