@@ -6,3 +6,4 @@ firmware/esp32_telemetry/secrets.h
 pki/
 mosquitto/certs/server.key
 backups/
+mosquitto/certs/server.crt
