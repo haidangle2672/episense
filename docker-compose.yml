@@ -28,6 +28,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ALERTER_DB_PASSWORD: ${ALERTER_DB_PASSWORD} # mới
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD} # mới
+      API_DB_PASS: ${API_DB_PASS} # mới
     volumes:
       - episense-pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
