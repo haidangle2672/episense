@@ -1,2 +1,20 @@
 Mở cổng 1883 cho mạng LAN:
     New-NetFirewallRule -DisplayName "MQTT 1883 (LAN)" -Direction Inbound -Protocol TCP -LocalPort 1883 -Action Allow -Profile Private
+
+docker exec episense-mosquitto mosquitto_pub -u esp32_dev -P "MAT_KHAU" -t "iot/v1/home/sim01/telemetry" -f /mosquitto/data/sim_hot.json
+
+docker exec episense-mosquitto mosquitto_pub -u esp32_dev -P "MAT_KHAU" -t "iot/v1/home/dev01/cmd" -f /mosquitto/data/cmd_on.json
+
+Hướng dẫn chạy renew-broker-cert.ps1 (Cấp lại chứng chỉ cho server khi đổi IP)
+    powershell -ExecutionPolicy Bypass -File .\tools\renew-broker-cert.ps1
+
+Đối chiếu với kết nối không mã hoá
+    - Cổng 1883: docker run --rm -it --net container:episense-mosquitto alpine sh -c "apk add --no-cache tcpdump > /dev/null && tcpdump -i any -nn -A -s0 -c 40 'tcp port 1883'"
+    - Cổng 8883: docker run --rm -it --net container:episense-mosquitto alpine sh -c "apk add --no-cache tcpdump > /dev/null && tcpdump -i any -nn -A -s0 -c 20 'tcp port 8883'"
+
+Xem Log của alerter (theo thời gian thực)
+    docker compose logs -f --tail 50 alerter
+
+    docker compose ps --services          # tìm tên service DB (vd: timescaledb, db)
+    Select-String -Path .env -Pattern "POSTGRES_(USER|DB)"   # lấy user và tên database
+

@@ -1,8 +1,10 @@
+#include "ca_cert.h"
 #include "secrets.h"
 #include <ArduinoJson.h>
 #include <DHT.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <time.h>
 
 // ---- Cấu hình thiết bị ----
@@ -17,7 +19,7 @@ constexpr uint32_t MQTT_RETRY_MAX_MS = 30000;
 constexpr time_t TIME_VALID_AFTER = 1700000000; // epoch hợp lệ (sau 11/2023)
 
 DHT dht(DHT_PIN, DHT_TYPE);
-WiFiClient net;
+WiFiClientSecure net; // thay cho: WiFiClient net;
 PubSubClient mqtt(net);
 
 char topicTelemetry[80];
@@ -51,6 +53,8 @@ void ensureWifi() {
 }
 
 void ensureMqtt() {
+  if (!timeSynced())
+    return; // TLS cần giờ đúng để kiểm tra hạn chứng chỉ
   if (WiFi.status() != WL_CONNECTED || mqtt.connected())
     return;
   if (millis() - lastMqttTry < mqttRetryDelay && lastMqttTry != 0)
@@ -60,7 +64,7 @@ void ensureMqtt() {
   Serial.printf("[MQTT] connecting to %s:%d ...\n", MQTT_HOST, MQTT_PORT);
   const char *willMsg = "{\"v\":1,\"state\":\"offline\"}";
   // connect(id, user, pass, willTopic, willQos, willRetain, willMessage)
-  if (mqtt.connect(clientId, MQTT_USER, MQTT_PASS, topicStatus, 1, true,
+  if (mqtt.connect(clientId, DEVICE_ID, MQTT_PASS, topicStatus, 1, true,
                    willMsg)) {
     Serial.println("[MQTT] connected");
     mqtt.publish(topicStatus, "{\"v\":1,\"state\":\"online\"}",
@@ -173,6 +177,7 @@ void setup() {
   WiFi.persistent(false);
   WiFi.setAutoReconnect(true);
   configTime(0, 0, "pool.ntp.org", "time.google.com"); // UTC
+  net.setCACert(CA_CERT); // ESP32 chỉ tin broker có chứng chỉ do CA này ký
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setKeepAlive(15);
   mqtt.setSocketTimeout(5);

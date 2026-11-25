@@ -3,3 +3,6 @@ mosquitto/config/passwd
 mosquitto/data/
 mosquitto/log/
 firmware/esp32_telemetry/secrets.h
+pki/
+mosquitto/certs/server.key
+backups/

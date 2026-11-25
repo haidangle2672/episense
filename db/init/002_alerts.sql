@@ -10,4 +10,4 @@ CREATE INDEX IF NOT EXISTS alert_events_device_time_idx ON alert_events (device_
 CREATE ROLE alerter LOGIN;
 GRANT CONNECT ON DATABASE episense TO alerter;
 GRANT USAGE ON SCHEMA public TO alerter;
-GRANT INSERT ON alert_events TO alerter;      -- chỉ được ghi thêm, không đọc/sửa/xoá
+GRANT INSERT, SELECT ON alert_events TO alerter;

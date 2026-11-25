@@ -4,11 +4,14 @@ services:
     container_name: episense-mosquitto
     restart: unless-stopped
     ports:
-      - "1883:1883"
-    env_file: .env
+      - "8883:8883" # bỏ "1883:1883"
+    environment:
+      MQTT_USER: ${MQTT_HEALTH_USER}
+      MQTT_PASS: ${MQTT_HEALTH_PASS}
     volumes:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/certs:/mosquitto/certs:ro
     networks:
       - episense-net
     healthcheck:
@@ -101,11 +104,35 @@ services:
       COOLDOWN_S: ${COOLDOWN_S:-300}
       ACK_TIMEOUT_S: ${ACK_TIMEOUT_S:-10}
       MAX_RETRIES: ${MAX_RETRIES:-2}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
     depends_on:
       mosquitto:
         condition: service_healthy
       db:
         condition: service_healthy
+    networks:
+      - episense-net
+
+  api:
+    build: ./api
+    container_name: episense-api
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_NAME: episense
+      API_DB_USER: api_ro
+      API_DB_PASS: ${API_DB_PASS}
+    ports:
+      - "127.0.0.1:8000:8000" # CHỈ localhost, không mở ra LAN/Internet
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/healthz', timeout=3)" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     networks:
       - episense-net
 

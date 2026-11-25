@@ -1,0 +1,25 @@
+# ---- Mẫu cho MỌI thiết bị: username phải trùng device_id ----
+# %u được thay bằng username của client đang kết nối
+pattern write iot/v1/+/%u/telemetry
+pattern write iot/v1/+/%u/status
+pattern write iot/v1/+/%u/ack
+pattern read  iot/v1/+/%u/cmd
+
+# ---- Healthcheck của Docker ----
+user monitor
+topic read $SYS/broker/uptime
+
+# ---- Backend ----
+user ingestor
+topic read iot/v1/+/+/telemetry
+topic read iot/v1/+/+/status
+
+user alerter
+topic read  iot/v1/+/+/telemetry
+topic read  iot/v1/+/+/ack
+topic write iot/v1/+/+/cmd
+
+# ---- Quản trị (chỉ dùng cục bộ để test, MQTT Explorer) ----
+user admin
+topic readwrite #
+topic read $SYS/#

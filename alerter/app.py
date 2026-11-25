@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import logging
 import os
@@ -10,6 +11,8 @@ import uuid
 import paho.mqtt.client as mqtt
 import psycopg
 from psycopg.types.json import Jsonb
+
+from notifier import notify
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("alerter")
@@ -74,6 +77,28 @@ class DevState:
 
 devices = {}   # (site, device_id) -> DevState
 pending = {}   # (site, device_id) -> lệnh đang chờ ACK
+open_at_boot = set()   # device_id có cảnh báo đang mở trước khi restart
+
+
+def load_open_alerts():
+    """Đọc DB: device nào có sự kiện cuối cùng là alert_open."""
+    sql = """
+        SELECT device_id FROM (
+            SELECT DISTINCT ON (device_id) device_id, kind
+            FROM alert_events
+            WHERE kind IN ('alert_open', 'alert_close')
+            ORDER BY device_id, time DESC
+        ) t WHERE kind = 'alert_open'
+    """
+    try:
+        with psycopg.connect(autocommit=True, **DB_KW) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                open_at_boot.update(r[0] for r in cur.fetchall())
+        log.info("Cảnh báo đang mở từ trước: %s", sorted(open_at_boot) or "không có")
+    except Exception as e:
+        # DB lỗi thì vẫn chạy bình thường, chỉ mất khả năng khôi phục
+        log.error("Không đọc được trạng thái cũ: %s", type(e).__name__)
 
 
 def audit(device_id, kind, detail=None):
@@ -81,12 +106,6 @@ def audit(device_id, kind, detail=None):
         "INSERT INTO alert_events (device_id, kind, detail) VALUES (%s, %s, %s)",
         (device_id, kind, Jsonb(detail or {})),
     )
-
-
-def notify(device_id, text):
-    # Giai đoạn học: ghi log + nhật ký. Sau này thay bằng Telegram/email/webhook.
-    log.warning("NOTIFY [%s] %s", device_id, text)
-    audit(device_id, "notify", {"text": text})
 
 
 def issue_cmd(client, key, value, cmd_id=None, retries=0):
@@ -109,7 +128,13 @@ def open_alert(client, key, temp):
     if time.time() - st.last_notify >= COOLDOWN_S:
         st.last_notify = time.time()
         st.notified = True
-        notify(device_id, f"Nhiệt độ cao {temp:.1f} °C (ngưỡng {T_HIGH} °C), đã gửi lệnh bật quạt")
+        high = f"{T_HIGH:g}"
+        ts_local = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
+        msg = (f"🔥 [{site}/{device_id}] Nhiệt độ cao: {temp:.1f}°C (ngưỡng {high}°C)\n"
+               f"Đã gửi lệnh bật quạt. Lúc {ts_local}")
+        log.warning("NOTIFY [%s] %s", device_id, msg)
+        audit(device_id, "notify", {"text": msg})
+        notify(msg)
     else:
         st.notified = False
         log.info("notify suppressed by cooldown for %s", device_id)
@@ -122,7 +147,11 @@ def close_alert(client, key, temp):
     audit(device_id, "alert_close", {"temp_c": temp, "t_low": T_LOW})
     issue_cmd(client, key, "off")
     if st.notified:
-        notify(device_id, f"Nhiệt độ đã về {temp:.1f} °C (≤ {T_LOW} °C), tắt quạt")
+        ts_local = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
+        msg = f"✅ [{site}/{device_id}] Nhiệt độ đã về {temp:.1f}°C, tắt quạt. Lúc {ts_local}"
+        log.warning("NOTIFY [%s] %s", device_id, msg)
+        audit(device_id, "notify", {"text": msg})
+        notify(msg)
 
 
 def process_telemetry(client, key, data):
@@ -132,7 +161,15 @@ def process_telemetry(client, key, data):
     if not (-40 <= temp <= 80):
         return
     with lock:
-        st = devices.setdefault(key, DevState())
+        st = devices.get(key)
+        if st is None:
+            st = DevState()
+            if key[1] in open_at_boot:      # key = (site, device_id)
+                st.alert = True             # tiếp tục trạng thái ALERT
+                st.notified = True          # để khi hồi phục vẫn gửi ✅
+                open_at_boot.discard(key[1])
+                log.warning("RESTORED alert state %s", key[1])
+            devices[key] = st
         if not st.alert:
             st.hi = st.hi + 1 if temp >= T_HIGH else 0
             if st.hi >= CONFIRM_N:
@@ -160,7 +197,10 @@ def process_ack(key, data):
                                  "fan": data.get("fan"), "rtt_s": round(rtt, 2)})
     log.info("ACK %s %s fan=%s", device_id, status, data.get("fan"))
     if status != "ok":
-        notify(device_id, f"Lệnh quạt bị từ chối/không thực hiện: {status} {data.get('reason', '')}")
+        msg = f"⚠️ [{key[0]}/{device_id}] Lệnh quạt bị từ chối/không thực hiện: {status} {data.get('reason', '')}".strip()
+        log.warning("NOTIFY [%s] %s", device_id, msg)
+        audit(device_id, "notify", {"text": msg})
+        notify(msg)
 
 
 def check_timeouts(client):
@@ -175,7 +215,10 @@ def check_timeouts(client):
             else:
                 del pending[key]
                 audit(key[1], "cmd_failed", {"cmd_id": p["cmd_id"], "value": p["value"]})
-                notify(key[1], f"Lệnh quạt '{p['value']}' KHÔNG có ACK sau {MAX_RETRIES} lần thử lại")
+                msg = f"⚠️ [{key[0]}/{key[1]}] Lệnh quạt '{p['value']}' KHÔNG có ACK sau {MAX_RETRIES} lần thử lại"
+                log.warning("NOTIFY [%s] %s", key[1], msg)
+                audit(key[1], "notify", {"text": msg})
+                notify(msg)
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -203,6 +246,8 @@ def on_message(client, userdata, msg):
 
 stop = threading.Event()
 signal.signal(signal.SIGTERM, lambda *_: stop.set())
+
+load_open_alerts()
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="episense-alerter")
 client.username_pw_set(MQTT_USER, MQTT_PASS)
