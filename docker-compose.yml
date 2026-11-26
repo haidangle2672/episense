@@ -144,7 +144,7 @@ services:
       - episense-net
 
   caddy:
-    image: caddy:2 # tạm thời; sẽ ghim đúng phiên bản ở Bước B
+    image: caddy:2.11.9
     container_name: episense-caddy
     restart: unless-stopped
     ports:
