@@ -1,0 +1,7 @@
+episense.io.vn {
+	respond "EpiSense: coming soon" 200
+}
+
+grafana.episense.io.vn {
+	reverse_proxy grafana:3000
+}

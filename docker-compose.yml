@@ -75,6 +75,9 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD} # để file provisioning đọc được
+      GF_SERVER_DOMAIN: grafana.episense.io.vn
+      GF_SERVER_ROOT_URL: https://grafana.episense.io.vn/
+      GF_SECURITY_COOKIE_SECURE: "true"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -140,9 +143,34 @@ services:
     networks:
       - episense-net
 
+  caddy:
+    image: caddy:2 # tạm thời; sẽ ghim đúng phiên bản ở Bước B
+    container_name: episense-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # chứa chứng chỉ: PHẢI giữ lại, mất là bị xin lại và có thể dính giới hạn
+      - caddy-config:/config
+    depends_on:
+      grafana:
+        condition: service_healthy
+    networks:
+      - episense-net
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:2019/config/ || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
 volumes:
   episense-pgdata:
   grafana-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   episense-net:
