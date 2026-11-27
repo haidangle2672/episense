@@ -1,9 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
-import HydrationCheck from '../components/HydrationCheck';
+import DashboardApp from '../components/DashboardApp';
 ---
-<Base title="Dashboard">
+<Base title="Dashboard" noindex>
   <h1>Dashboard</h1>
-  <p>Khung dashboard sẽ được xây ở bước 2.5c.</p>
-  <HydrationCheck client:load />
+  <DashboardApp client:only="react" />
 </Base>

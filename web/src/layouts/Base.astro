@@ -1,6 +1,7 @@
 ---
-interface Props { title: string; description?: string }
-const { title, description = 'EpiSense: giám sát môi trường thời gian thực' } = Astro.props;
+import AuthNav from '../components/AuthNav';
+interface Props { title: string; description?: string; noindex?: boolean }
+const { title, description = 'EpiSense: giám sát môi trường thời gian thực', noindex = false } = Astro.props;
 const nav = [
   { href: '/', label: 'Trang chủ' },
   { href: '/dashboard/', label: 'Dashboard' },
@@ -15,6 +16,7 @@ const path = Astro.url.pathname;
     <title>{title} | EpiSense</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {noindex && <meta name="robots" content="noindex" />}
   </head>
   <body>
     <header>
@@ -24,6 +26,7 @@ const path = Astro.url.pathname;
           <a href={i.href} aria-current={path === i.href ? 'page' : undefined}>{i.label}</a>
         ))}
       </nav>
+      <div class="auth-slot"><AuthNav client:load /></div>
     </header>
     <main><slot /></main>
     <footer>© {new Date().getFullYear()} EpiSense</footer>
@@ -44,4 +47,12 @@ const path = Astro.url.pathname;
   main { max-width: 60rem; margin: 0 auto; padding: 1.5rem; }
   footer { padding: 1.5rem; color: var(--muted); text-align: center; }
   a { color: var(--accent); }
+
+  .auth-slot { margin-left: auto; }
+  form.login { display: grid; gap: 0.75rem; max-width: 22rem; }
+  form.login label { display: grid; gap: 0.25rem; }
+  input, button { font: inherit; padding: 0.5rem 0.75rem; }
+  button { cursor: pointer; }
+  [role='alert'] { color: #c0392b; }
+  @media (prefers-color-scheme: dark) { [role='alert'] { color: #ff8a80; } }
 </style>
