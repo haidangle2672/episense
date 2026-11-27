@@ -130,6 +130,7 @@ services:
       DB_NAME: episense
       API_DB_USER: api_ro
       API_DB_PASS: ${API_DB_PASS}
+      SESSION_SECRET: ${SESSION_SECRET} # mới
     ports:
       - "127.0.0.1:8000:8000" # CHỈ localhost, không mở ra LAN/Internet
     depends_on:
@@ -152,12 +153,14 @@ services:
       - "443:443"
       - "443:443/udp" # HTTP/3
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy:/etc/caddy:ro # đổi: mount cả thư mục thay vì từng file
       - caddy-data:/data # chứa chứng chỉ: PHẢI giữ lại, mất là bị xin lại và có thể dính giới hạn
       - caddy-config:/config
     depends_on:
       grafana:
         condition: service_healthy
+      api:
+        condition: service_healthy # mới
     networks:
       - episense-net
     healthcheck:

@@ -1,5 +1,12 @@
 episense.io.vn {
-	respond "EpiSense: coming soon" 200
+	handle /api/* {
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+	handle {
+		respond "EpiSense: coming soon" 200
+	}
 }
 
 grafana.episense.io.vn {

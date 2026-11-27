@@ -3,11 +3,13 @@ import os
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Path, Query, Request
+from fastapi import FastAPI, HTTPException, Path, Query, Request, Depends, Response
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from fastapi.responses import StreamingResponse
 from app.realtime import Hub, poll_loop
+from pydantic import BaseModel, Field
+from app import auth
 
 hub = Hub()
 
@@ -36,7 +38,11 @@ async def lifespan(app: FastAPI):
     await pool.close()
 
 
-app = FastAPI(title="EpiSense API", version="1", lifespan=lifespan)
+app = FastAPI(
+    title="EpiSense API", version="1", lifespan=lifespan,
+    dependencies=[Depends(auth.require_user)],        # mọi route đều phải đăng nhập
+    docs_url=None, redoc_url=None, openapi_url=None,  # tắt tài liệu tự sinh
+)
 
 
 async def query(sql: str, params: tuple):
@@ -117,3 +123,37 @@ async def stream(request: Request):
     return StreamingResponse(
         gen(), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        
+
+class LoginIn(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=256)
+
+@app.post("/api/v1/auth/login")
+async def login(body: LoginIn, request: Request, response: Response):
+    ip = request.client.host if request.client else "unknown"
+    username = body.username.strip().lower()
+    if auth.is_blocked(ip, username):
+        raise HTTPException(429, "thu lai sau")
+    rows = await query(
+        "SELECT username, password_hash, role FROM app_users WHERE username = %s", (username,))
+    row = rows[0] if rows else None
+    ok = await asyncio.to_thread(
+        auth.verify_password, row["password_hash"] if row else None, body.password)
+    if not ok:
+        auth.record_failure(ip, username)
+        raise HTTPException(401, "sai ten dang nhap hoac mat khau")   # thông báo chung, không lộ user có tồn tại
+    auth.record_success(ip, username)
+    response.set_cookie(
+        auth.COOKIE, auth.make_token(row["username"], row["role"]),
+        max_age=auth.TTL_S, httponly=True, secure=True, samesite="lax", path="/")
+    return {"user": row["username"], "role": row["role"]}
+
+@app.post("/api/v1/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie(auth.COOKIE, path="/", secure=True, httponly=True, samesite="lax")
+    return {"ok": True}
+
+@app.get("/api/v1/auth/me")
+async def me(request: Request):
+    return {"user": request.state.user["u"], "role": request.state.user["r"]}
