@@ -156,6 +156,7 @@ services:
       - ./caddy:/etc/caddy:ro # đổi: mount cả thư mục thay vì từng file
       - caddy-data:/data # chứa chứng chỉ: PHẢI giữ lại, mất là bị xin lại và có thể dính giới hạn
       - caddy-config:/config
+      - ./web:/srv/web:ro
     depends_on:
       grafana:
         condition: service_healthy

@@ -7,3 +7,7 @@ pki/
 mosquitto/certs/server.key
 backups/
 mosquitto/certs/server.crt
+
+web/node_modules/
+web/dist/
+web/.astro/

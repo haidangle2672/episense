@@ -1,0 +1,47 @@
+---
+interface Props { title: string; description?: string }
+const { title, description = 'EpiSense: giám sát môi trường thời gian thực' } = Astro.props;
+const nav = [
+  { href: '/', label: 'Trang chủ' },
+  { href: '/dashboard/', label: 'Dashboard' },
+];
+const path = Astro.url.pathname;
+---
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} | EpiSense</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/">EpiSense</a>
+      <nav>
+        {nav.map((i) => (
+          <a href={i.href} aria-current={path === i.href ? 'page' : undefined}>{i.label}</a>
+        ))}
+      </nav>
+    </header>
+    <main><slot /></main>
+    <footer>© {new Date().getFullYear()} EpiSense</footer>
+  </body>
+</html>
+
+<style is:global>
+  :root { color-scheme: light dark; --fg: #1a1a1a; --bg: #fff; --accent: #0a7d5a; --muted: #666; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #e8e8e8; --bg: #121212; --accent: #3ccf9b; --muted: #aaa; }
+  }
+  body { margin: 0; color: var(--fg); background: var(--bg); font-family: system-ui, sans-serif; line-height: 1.6; }
+  header { display: flex; gap: 1.5rem; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid color-mix(in srgb, var(--fg) 15%, transparent); }
+  .brand { font-weight: 700; color: var(--accent); text-decoration: none; }
+  nav { display: flex; gap: 1rem; }
+  nav a { color: var(--fg); text-decoration: none; }
+  nav a[aria-current='page'] { color: var(--accent); font-weight: 600; }
+  main { max-width: 60rem; margin: 0 auto; padding: 1.5rem; }
+  footer { padding: 1.5rem; color: var(--muted); text-align: center; }
+  a { color: var(--accent); }
+</style>
