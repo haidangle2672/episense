@@ -1,0 +1,276 @@
+/* Lam kính: bảng màu nhuộm hiển vi, trường sáng và trường tối */
+:root {
+    color-scheme: light dark;
+    --glass: #eaf1f0;
+    --specimen: #fafcfb;
+    --ink: #26234f;
+    --ink-soft: #4b4a73;
+    --muted: #5b6080;
+    --rule: #cfdad8;
+    --eosin: #d4506f;
+    --eosin-ink: #b0304f;
+    --methylene: #2468a8;
+    --agar: #2a9d8f;
+    --agar-ink: #1b6f65;
+    --amber: #c98a1b;
+    --amber-ink: #8a5a00;
+    --focus: #2468a8;
+    --font-display: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
+    --font-ui: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --glass: #0c1226;
+        --specimen: #131a35;
+        --ink: #e7ecf7;
+        --ink-soft: #b7c0da;
+        --muted: #8e98b8;
+        --rule: #263052;
+        --eosin: #ff7a9c;
+        --eosin-ink: #ff7a9c;
+        --methylene: #6cc2ff;
+        --agar: #5fd3bc;
+        --agar-ink: #5fd3bc;
+        --amber: #f2b84b;
+        --amber-ink: #f2b84b;
+        --focus: #6cc2ff;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    background: var(--glass);
+}
+
+body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--glass);
+    font-family: var(--font-ui);
+    line-height: 1.6;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.5em;
+}
+
+h1 {
+    font-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem);
+}
+
+h2 {
+    font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem);
+}
+
+p {
+    max-width: 62ch;
+}
+
+a {
+    color: var(--methylene);
+    text-underline-offset: 0.2em;
+}
+
+:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+::selection {
+    background: color-mix(in srgb, var(--methylene) 28%, transparent);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.skip {
+    position: absolute;
+    left: -999px;
+}
+
+.skip:focus {
+    left: 1rem;
+    top: 1rem;
+    z-index: 20;
+    background: var(--ink);
+    color: var(--specimen);
+    padding: 0.5rem 1rem;
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.8rem clamp(1rem, 4vw, 2.5rem);
+    border-bottom: 1px solid var(--rule);
+    background: color-mix(in srgb, var(--specimen) 82%, transparent);
+    backdrop-filter: blur(8px);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.brand svg {
+    width: 1.6rem;
+    height: 1.6rem;
+}
+
+.site-nav {
+    display: flex;
+    gap: 1.25rem;
+}
+
+.site-nav a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 0.25rem 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.3s var(--ease);
+}
+
+.site-nav a:hover {
+    color: var(--ink);
+}
+
+.site-nav a[aria-current='page'] {
+    color: var(--ink);
+    border-bottom-color: var(--eosin);
+}
+
+.auth-slot {
+    margin-left: auto;
+    font-size: 0.95rem;
+}
+
+.auth-slot button {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.875rem;
+}
+
+.page {
+    max-width: 74rem;
+    margin: 0 auto;
+    padding: clamp(1.25rem, 3vw, 2.5rem) clamp(1rem, 4vw, 2.5rem) 4rem;
+}
+
+.site-footer {
+    padding: 2rem;
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+button,
+.btn {
+    font: inherit;
+    cursor: pointer;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    padding: 0.5rem 1rem;
+    transition: background 0.2s var(--ease), color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+button:hover:not(:disabled),
+.btn:hover {
+    background: var(--ink);
+    color: var(--specimen);
+}
+
+button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: progress;
+}
+
+a.btn {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--ink);
+    color: var(--specimen);
+}
+
+.btn-primary:hover {
+    background: var(--ink-soft);
+}
+
+input {
+    font: inherit;
+    color: inherit;
+    background: var(--specimen);
+    border: 1px solid var(--rule);
+    border-bottom-color: var(--ink-soft);
+    border-radius: 2px;
+    padding: 0.55rem 0.7rem;
+}
+
+input:focus-visible {
+    outline-offset: 1px;
+}
+
+form.login {
+    display: grid;
+    gap: 1rem;
+    max-width: 24rem;
+}
+
+form.login label {
+    display: grid;
+    gap: 0.3rem;
+    font-weight: 500;
+}
+
+[role='alert'] {
+    color: var(--eosin-ink);
+    font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}

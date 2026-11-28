@@ -1,7 +1,17 @@
 ---
+import '@fontsource-variable/newsreader';
+import '@fontsource/be-vietnam-pro/400.css';
+import '@fontsource/be-vietnam-pro/500.css';
+import '@fontsource/be-vietnam-pro/600.css';
+import '../styles/theme.css';
 import AuthNav from '../components/AuthNav';
+
 interface Props { title: string; description?: string; noindex?: boolean }
-const { title, description = 'EpiSense: giám sát môi trường thời gian thực', noindex = false } = Astro.props;
+const {
+  title,
+  description = 'EpiSense: giám sát nhiệt độ và độ ẩm theo thời gian thực, cảnh báo khi vượt ngưỡng',
+  noindex = false,
+} = Astro.props;
 const nav = [
   { href: '/', label: 'Trang chủ' },
   { href: '/dashboard/', label: 'Dashboard' },
@@ -13,46 +23,31 @@ const path = Astro.url.pathname;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eaf1f0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0c1226" media="(prefers-color-scheme: dark)" />
     <title>{title} | EpiSense</title>
     <meta name="description" content={description} />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     {noindex && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <header>
-      <a class="brand" href="/">EpiSense</a>
-      <nav>
+    <a class="skip" href="#main">Bỏ qua phần điều hướng</a>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.6" />
+          <path d="M4 15h4l2-7 3 9 2-6h5" fill="none" stroke="var(--eosin)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        EpiSense
+      </a>
+      <nav class="site-nav" aria-label="Chính">
         {nav.map((i) => (
           <a href={i.href} aria-current={path === i.href ? 'page' : undefined}>{i.label}</a>
         ))}
       </nav>
       <div class="auth-slot"><AuthNav client:load /></div>
     </header>
-    <main><slot /></main>
-    <footer>© {new Date().getFullYear()} EpiSense</footer>
+    <main id="main" class="page"><slot /></main>
+    <footer class="site-footer">EpiSense, dự án giám sát môi trường bằng ESP32 và MQTT. © {new Date().getFullYear()}</footer>
   </body>
 </html>
-
-<style is:global>
-  :root { color-scheme: light dark; --fg: #1a1a1a; --bg: #fff; --accent: #0a7d5a; --muted: #666; }
-  @media (prefers-color-scheme: dark) {
-    :root { --fg: #e8e8e8; --bg: #121212; --accent: #3ccf9b; --muted: #aaa; }
-  }
-  body { margin: 0; color: var(--fg); background: var(--bg); font-family: system-ui, sans-serif; line-height: 1.6; }
-  header { display: flex; gap: 1.5rem; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid color-mix(in srgb, var(--fg) 15%, transparent); }
-  .brand { font-weight: 700; color: var(--accent); text-decoration: none; }
-  nav { display: flex; gap: 1rem; }
-  nav a { color: var(--fg); text-decoration: none; }
-  nav a[aria-current='page'] { color: var(--accent); font-weight: 600; }
-  main { max-width: 60rem; margin: 0 auto; padding: 1.5rem; }
-  footer { padding: 1.5rem; color: var(--muted); text-align: center; }
-  a { color: var(--accent); }
-
-  .auth-slot { margin-left: auto; }
-  form.login { display: grid; gap: 0.75rem; max-width: 22rem; }
-  form.login label { display: grid; gap: 0.25rem; }
-  input, button { font: inherit; padding: 0.5rem 0.75rem; }
-  button { cursor: pointer; }
-  [role='alert'] { color: #c0392b; }
-  @media (prefers-color-scheme: dark) { [role='alert'] { color: #ff8a80; } }
-</style>

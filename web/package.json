@@ -13,10 +13,13 @@
   },
   "dependencies": {
     "@astrojs/react": "^7.1.9",
+    "@fontsource-variable/newsreader": "^5.3.0",
+    "@fontsource/be-vietnam-pro": "^5.3.0",
     "@types/react": "^19.3.3",
     "@types/react-dom": "^19.3.0",
     "astro": "^7.4.13",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "recharts": "^3.11.2"
   }
 }

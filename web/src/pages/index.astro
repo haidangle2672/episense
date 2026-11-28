@@ -1,8 +1,48 @@
 ---
 import Base from '../layouts/Base.astro';
+// Minh họa: một đường cong dịch tễ điển hình (nguồn phơi nhiễm đơn lẻ)
+const cases = [2, 3, 5, 8, 12, 18, 26, 36, 46, 54, 58, 56, 50, 42, 34, 26, 20, 14, 10, 7, 5, 3, 2, 1];
+const threshold = 30, S = 4, W = 20, BASE = 240;
 ---
 <Base title="Trang chủ">
-  <h1>EpiSense</h1>
-  <p>Hệ thống giám sát môi trường thời gian thực bằng ESP32 và MQTT.</p>
-  <p><a href="/dashboard/">Mở dashboard</a></p>
+  <section class="hero">
+    <div>
+      <h1>Thấy sớm điều đang đổi thay trong môi trường</h1>
+      <p class="lead">
+        Nhiệt độ và độ ẩm ảnh hưởng đến sự phát triển của muỗi truyền bệnh. EpiSense bắt đầu từ việc đo
+        chúng đáng tin cậy, ở từng địa điểm, theo thời gian thực, và báo ngay khi vượt ngưỡng.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="/dashboard/">Mở dashboard</a>
+      </div>
+    </div>
+    <figure class="epi">
+      <svg viewBox="0 0 480 270" role="img" aria-label="Minh họa đường cong dịch tễ: số ca tăng dần, đạt đỉnh rồi giảm; các cột vượt ngưỡng cảnh báo được tô màu hồng">
+        {cases.map((v, i) => (
+          <rect class={v > threshold ? 'hot' : undefined} style={`--i:${i}`} x={i * W + 2} y={BASE - v * S} width={W - 4} height={v * S} />
+        ))}
+        <line class="base" x1="0" y1={BASE} x2="480" y2={BASE} />
+        <line class="thr" x1="0" y1={BASE - threshold * S} x2="480" y2={BASE - threshold * S} />
+        <text x="6" y={BASE - threshold * S - 8}>Ngưỡng cảnh báo</text>
+      </svg>
+      <figcaption>Minh họa: số ca tăng, đạt đỉnh rồi giảm. Vùng vượt ngưỡng là lúc cần phản ứng.</figcaption>
+    </figure>
+  </section>
 </Base>
+
+<style>
+  .hero { display: grid; gap: 2.5rem; align-items: end; padding-block: clamp(1rem, 4vw, 3rem) 2rem; }
+  @media (min-width: 52rem) { .hero { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); } }
+  .lead { font-size: 1.15rem; color: var(--ink-soft); }
+  .hero-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+  .epi { margin: 0; }
+  .epi svg { width: 100%; height: auto; display: block; }
+  .epi figcaption { margin-top: 0.5rem; color: var(--muted); font-size: 0.875rem; max-width: 46ch; }
+  .epi rect { fill: var(--methylene); transform-box: fill-box; transform-origin: 50% 100%; animation: rise 0.8s var(--ease) both; animation-delay: calc(var(--i) * 45ms); }
+  .epi rect.hot { fill: var(--eosin); }
+  .epi .base { stroke: var(--ink); stroke-width: 1.5; }
+  .epi .thr { stroke: var(--eosin-ink); stroke-width: 1.5; stroke-dasharray: 6 5; animation: fade 0.6s ease 1.4s both; }
+  .epi text { fill: var(--eosin-ink); font-size: 13px; font-family: var(--font-ui); animation: fade 0.6s ease 1.6s both; }
+  @keyframes rise { from { transform: scaleY(0); } }
+  @keyframes fade { from { opacity: 0; } }
+</style>
